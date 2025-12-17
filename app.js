@@ -75,7 +75,7 @@ app.post('/', async (req) => {
 
   const cookie = response.headers.get('set-cookie');
 
-= await fetch('https://api.ticktick.com/api/v2/batch/task', {
+  await fetch('https://api.ticktick.com/api/v2/batch/task', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
