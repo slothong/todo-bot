@@ -2,8 +2,6 @@ import './env.js';
 import express from 'express';
 import crypto from 'crypto';
 
-const secretKey = process.env.LINE_CHANNEL_SECRET;
-
 const verifySignature = (body, signature) => { const generatedSignature = crypto
     .createHmac("SHA256", process.env.LINE_CHANNEL_SECRET)
     .update(body)
@@ -12,7 +10,7 @@ const verifySignature = (body, signature) => { const generatedSignature = crypto
 }
 
 const app = express();
-const port = 3000;
+const port = 8080;
 
 app.use(express.json());
 
@@ -35,6 +33,8 @@ const payload = {
   content:"",
 };
 
+const prefix = 'todo:';
+
 app.post('/', async (req) => {
   const body = JSON.stringify(req.body);
   if (!verifySignature(body, req.headers['x-line-signature'])) {
@@ -52,15 +52,15 @@ app.post('/', async (req) => {
 
   const { text } = messageEvent.message;
 
-  if (!text.startsWith('TODO:')) {
+  if (!text.toLowerCase().startsWith(prefix)) {
     return;
   }
 
-  const title = text.slice('TODO:'.length).trim();
+  const title = text.slice(prefix.length).trim();
   console.log(title);
 
   const username = process.env.TICKTICK_USERNAME;
-  const password = procecss.env.TICKTICK_PASSWORD;
+  const password = process.env.TICKTICK_PASSWORD;
 
   const response = await fetch('https://api.ticktick.com/api/v2/user/signon?wc=true&remember=true', {
     method: 'POST',
