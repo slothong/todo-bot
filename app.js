@@ -111,6 +111,24 @@ app.post('/', async (req) => {
       }),
     })
   } catch (error) {
+    const accessToken = await getAccessToken();
+
+    await fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        replyToken: messageEvent.replyToken,
+        messages: [
+          {
+            type: 'text',
+            text: `Failed to add todo: ${title}`,
+          },
+        ],
+      }),
+    })
   }
 
 });
