@@ -56,42 +56,85 @@ app.post('/', async (req) => {
     return;
   }
 
+
   const title = text.slice(prefix.length).trim();
-  console.log(title);
 
   const username = process.env.TICKTICK_USERNAME;
   const password = process.env.TICKTICK_PASSWORD;
 
-  const response = await fetch('https://api.ticktick.com/api/v2/user/signon?wc=true&remember=true', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-device': '{"platform":"web","os":"macOS 10.15.7","device":"Chrome 143.0.0.0","name":"","version":6430,"id":"694295f1bf08cd5b429506e8","channel":"website","campaign":"","websocket":""}',
-    },
-    body: JSON.stringify({ username, password }),
-  });
+  try {
+    const response = await fetch('https://api.ticktick.com/api/v2/user/signon?wc=true&remember=true', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-device': '{"platform":"web","os":"macOS 10.15.7","device":"Chrome 143.0.0.0","name":"","version":6430,"id":"694295f1bf08cd5b429506e8","channel":"website","campaign":"","websocket":""}',
+      },
+      body: JSON.stringify({ username, password }),
+    });
 
-  const { token } = await response.json();
+    const { token } = await response.json();
 
-  const cookie = response.headers.get('set-cookie');
+    const cookie = response.headers.get('set-cookie');
 
-  await fetch('https://api.ticktick.com/api/v2/batch/task', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'x-device': '{"platform":"web","os":"macOS 10.15.7","device":"Chrome 143.0.0.0","name":"","version":6430,"id":"694295f1bf08cd5b429506e8","channel":"website","campaign":"","websocket":""}',
-      'Cookie': cookie,
-    },
-    body: JSON.stringify({
-      add: [{
-        ...payload,
-        title,
-      }]
-    }),
-  });
+    await fetch('https://api.ticktick.com/api/v2/batch/task', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'x-device': '{"platform":"web","os":"macOS 10.15.7","device":"Chrome 143.0.0.0","name":"","version":6430,"id":"694295f1bf08cd5b429506e8","channel":"website","campaign":"","websocket":""}',
+        'Cookie': cookie,
+      },
+      body: JSON.stringify({
+        add: [{
+          ...payload,
+          title,
+        }]
+      }),
+    });
+
+    const accessToken = await getAccessToken();
+
+    await fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        replyToken: messageEvent.replyToken,
+        messages: [
+          {
+            type: 'text',
+            text: `✅ Added todo: ${title}`,
+          },
+        ],
+      }),
+    })
+  } catch (error) {
+  }
+
 });
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 });
+
+const getAccessToken = async () => {
+  const response = await fetch('https://api.line.me/oauth2/v3/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: process.env.LINE_CHANNEL_ID,
+      client_secret: process.env.LINE_CHANNEL_SECRET,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to get access token');
+  }
+
+  const accessToken = (await response.json()).access_token;
+  return accessToken;
+}
