@@ -105,7 +105,7 @@ app.post('/', async (req) => {
         messages: [
           {
             type: 'text',
-            text: `✅ Added todo: ${title}`,
+            text: `💪 任務已登記完成: ${title}`,
           },
         ],
       }),
